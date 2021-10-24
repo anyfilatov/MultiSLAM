@@ -1,0 +1,108 @@
+<launch>
+  <arg name="path1" default="/home/wwu/ROS/workspace/src/Multi_slam_everythin/working_datasets/2011-01-25-06-29-26_robot_1.bag" />
+  <arg name="path2" default="/home/wwu/ROS/workspace/src/Multi_slam_everythin/working_datasets/2011-01-25-06-29-26_robot_2.bag" />
+  <machine name="local" address="localhost" default="true" />
+
+  <param name="use_sim_time" value="true"/>
+  <arg name="rate" default="1.0" />
+
+  <node name="vinySlam1" pkg="slam_constructor" type="viny_slam"
+        cwd="node" required="true" output="screen">
+
+    <!-- = Mapping = -->
+    <param name="slam/mapping/blur" value="0.3" />
+    <!-- * Occupancy Estimator setup -->
+    <param name="slam/occupancy_estimator/type" value="const" />
+    <param name="slam/occupancy_estimator/base_occupied/prob" value="0.95" />
+    <param name="slam/occupancy_estimator/base_occupied/qual" value="0.04" />
+    <param name="slam/occupancy_estimator/base_empty/prob" value="0.01" />
+    <param name="slam/occupancy_estimator/base_empty/qual" value="0.003" />
+    <!-- * Occupancy Map setup -->
+    <param name="slam/map/height_in_meters" value="100" />
+    <param name="slam/map/width_in_meters" value="100" />
+    <param name="slam/map/meters_per_cell" value="0.1" />
+
+    <!-- = Localization = -->
+    <param name="slam/scmtch/type" value="MC" />
+    <param name="slam/scmtch/MC/dispersion/translation" value="0.2" />
+    <param name="slam/scmtch/MC/dispersion/rotation" value="0.1" />
+    <param name="slam/scmtch/MC/dispersion/failed_attempts_limit" value="20" />
+    <param name="slam/scmtch/MC/attempts_limit" value="100" />
+    <!-- <param name="slam/scmtch/MC/seed" value="666666" /> -->
+
+    <param name="slam/scmtch/spe/type" value="wmpp" />
+    <param name="slam/scmtch/spe/wmpp/weighting/type" value="viny" />
+
+    <!-- = Input = -->
+    <param name="in/lscan2D/ros/topic/name" value="/base_scan1" />
+    <param name="in/odometry/ros/tf/odom_frame_id" value="odom_combined1" />
+    <param name="ros/tf/map_frame_id" value="map1" />
+    <param name="ros/tf/robot_pose_frame_id" value="robot_pose1" />
+    <param name="in/multi/robot_id" type="str" value="1" />
+
+    <!-- = TODO: Output. pmg, traj/tum -->
+    <!-- = TODO sort = -->
+    <!-- Internal constants -->
+    <param name="ros/skip_exceeding_lsr_vals" value="false" />
+
+  </node>
+  
+  <node name="vinySlam2" pkg="slam_constructor" type="viny_slam"
+        cwd="node" required="true" output="screen">
+
+    <!-- = Mapping = -->
+    <param name="slam/mapping/blur" value="0.3" />
+    <!-- * Occupancy Estimator setup -->
+    <param name="slam/occupancy_estimator/type" value="const" />
+    <param name="slam/occupancy_estimator/base_occupied/prob" value="0.95" />
+    <param name="slam/occupancy_estimator/base_occupied/qual" value="0.04" />
+    <param name="slam/occupancy_estimator/base_empty/prob" value="0.01" />
+    <param name="slam/occupancy_estimator/base_empty/qual" value="0.003" />
+    <!-- * Occupancy Map setup -->
+    <param name="slam/map/height_in_meters" value="100" />
+    <param name="slam/map/width_in_meters" value="100" />
+    <param name="slam/map/meters_per_cell" value="0.1" />
+
+    <!-- = Localization = -->
+    <param name="slam/scmtch/type" value="MC" />
+    <param name="slam/scmtch/MC/dispersion/translation" value="0.2" />
+    <param name="slam/scmtch/MC/dispersion/rotation" value="0.1" />
+    <param name="slam/scmtch/MC/dispersion/failed_attempts_limit" value="20" />
+    <param name="slam/scmtch/MC/attempts_limit" value="100" />
+    <!-- <param name="slam/scmtch/MC/seed" value="666666" /> -->
+
+    <param name="slam/scmtch/spe/type" value="wmpp" />
+    <param name="slam/scmtch/spe/wmpp/weighting/type" value="viny" />
+
+    <!-- = Input = -->
+    <param name="in/lscan2D/ros/topic/name" value="/base_scan2" />
+    <param name="in/odometry/ros/tf/odom_frame_id" value="odom_combined2" />
+    <param name="ros/tf/map_frame_id" value="map2" />
+    <param name="ros/tf/robot_pose_frame_id" value="robot_pose2" />
+    <param name="in/multi/robot_id" type="str" value="2" />
+
+    <!-- = TODO: Output. pmg, traj/tum -->
+    <!-- = TODO sort = -->
+    <!-- Internal constants -->
+    <param name="ros/skip_exceeding_lsr_vals" value="false" />
+    <remap from="input_serialized_map" to="serialized_map1" />
+
+  </node>
+
+  <node name="map1_map2_tf" pkg="slam_constructor" type="common_frames_tf.py"/>
+  
+  <node name="player_1" pkg="rosbag" type="play"
+        args="--delay=3  --clock --rate $(arg rate) $(arg path1) $(arg path2)" />
+        
+
+  <node name="pose_logger" pkg="slam_constructor" type="pose_logger.py">
+    <param name="target_frame" value="map2" />
+    <param name="base_frame" value="base_link2" />
+    <param name="output_file" value="/home/anton/catkin_ws_old/out_traj.txt" />
+  </node>
+  
+  <node name="service_caller" pkg="slam_constructor" type="service_caller.py" />
+  <node name="rviz" pkg="rviz" type="rviz" respawn="true"
+        args="-d $(find slam_constructor)/rviz/multi_slam.rviz" />
+
+</launch>
